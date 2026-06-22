@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aux Memory</title>
+    <style>
+        :root { 
+            --bg: #0f172a; 
+            --card: #1e293b; 
+            --text: #f8fafc; 
+            --accent: #22d3ee; 
+            --dim: #64748b; 
+            --urgent: #f43f5e; 
+            --star: #fbbf24;
+        }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
+        h1 { color: var(--accent); font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin: 20px 0 10px 0; }
+        
+        /* Navigation Tabs */
+        .tabs { display: flex; width: 100%; max-width: 340px; margin-bottom: 20px; background: var(--card); border-radius: 12px; padding: 4px; gap: 4px; }
+        .tab-btn { flex: 1; background: none; border: none; color: var(--dim); padding: 10px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.9rem;}
+        .tab-btn.active { background: var(--bg); color: var(--accent); }
+
+        .input-container { width: 100%; max-width: 340px; margin-bottom: 20px; display: flex; gap: 10px; }
+        input { flex: 1; background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 12px; color: white; outline: none; font-size: 1rem; }
+        button.add-btn { background: var(--accent); color: var(--bg); border: none; border-radius: 12px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
+
+        .list { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
+        .item { background: var(--card); padding: 15px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); transition: 0.3s; }
+        .item.urgent { border-left-color: var(--urgent); }
+        .item.permanent { border-left-color: var(--star); }
+        
+        .item-content { flex: 1; }
+        .item-text { font-size: 1rem; margin-bottom: 4px; display: block; }
+        .time-left { font-size: 0.65rem; font-weight: bold; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .urgent .time-left { color: var(--urgent); }
+        
+        .actions { display: flex; gap: 12px; align-items: center; margin-left: 10px; }
+        .action-btn { color: var(--dim); background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; transition: color 0.2s; }
+        
+        /* Interactive States */
+        .refresh-btn:active { color: var(--accent); transform: rotate(45deg); }
+        .promote-btn:hover { color: var(--star); }
+        .delete-btn:active { color: var(--urgent); }
+    </style>
+</head>
+<body>
+
+    <h1>Aux Memory</h1>
+
+    <div class="tabs">
+        <button id="tab-24h" class="tab-btn active" onclick="switchTab('24h')">24 Hour</button>
+        <button id="tab-long" class="tab-btn" onclick="switchTab('long')">Long Term</button>
+    </div>
+
+    <div class="input-container">
+        <input type="text" id="taskInput" placeholder="What would you like to remember?" autocomplete="off">
+        <button class="add-btn" onclick="addItem()">Add</button>
+    </div>
+
+    <div id="taskList" class="list"></div>
+
+    <script>
+        let currentTab = '24h';
+        
+        // Load data from localStorage
+        let tasks = JSON.parse(localStorage.getItem('memoryTasks')) || [];
+        let longTermTasks = JSON.parse(localStorage.getItem('longTermTasks')) || [];
+
+        const input = document.getElementById('taskInput');
+        const list = document.getElementById('taskList');
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-24h').classList.toggle('active', tab === '24h');
+            document.getElementById('tab-long').classList.toggle('active', tab === 'long');
+            
+            // Adjust placeholder text dynamically based on the tab
+            input.placeholder = tab === '24h' ? "Remember for 24 hours..." : "Remember permanently...";
+            saveAndRender();
+        }
+
+        function addItem() {
+            const val = input.value.trim();
+            if (!val) return;
+            
+            const newTask = {
+                id: Date.now(),
+                text: val,
+                timestamp: Date.now()
+            };
+
+            if (currentTab === '24h') {
+                tasks.unshift(newTask);
+            } else {
+                longTermTasks.unshift(newTask);
+            }
+
+            input.value = '';
+            saveAndRender();
+        }
+
+        function refreshTask(id) {
+            tasks = tasks.map(t => {
+                if (t.id === id) {
+                    return { ...t, timestamp: Date.now() };
+                }
+                return t;
+            });
+            saveAndRender();
+        }
+
+        function promoteTask(id) {
+            const taskToPromote = tasks.find(t => t.id === id);
+            if (taskToPromote) {
+                // Remove from 24h tasks
+                tasks = tasks.filter(t => t.id !== id);
+                // Add to long term tasks
+                longTermTasks.unshift({
+                    ...taskToPromote,
+                    timestamp: Date.now() // Optional: update timestamp to date of promotion
+                });
+                saveAndRender();
+            }
+        }
+
+        function deleteTask(id, type) {
+            if (type === '24h') {
+                tasks = tasks.filter(t => t.id !== id);
+            } else {
+                longTermTasks = goldTasks = longTermTasks.filter(t => t.id !== id);
+            }
+            saveAndRender();
+        }
+
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
+
+        function saveAndRender() {
+            const now = Date.now();
+            const limit = 24 * 60 * 60 * 1000;
+
+            // Constantly clean out expired 24h items
+            tasks = tasks.filter(t => now - t.timestamp < limit);
+            
+            // Save state
+            localStorage.setItem('memoryTasks', JSON.stringify(tasks));
+            localStorage.setItem('longTermTasks', JSON.stringify(longTermTasks));
+            
+            list.innerHTML = '';
+
+            if (currentTab === '24h') {
+                // Render 24 Hour view
+                tasks.forEach(task => {
+                    const elapsed = now - task.timestamp;
+                    const remaining = limit - elapsed;
+                    
+                    const hours = Math.floor(remaining / (1000 * 60 * 60));
+                    const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    const item = document.createElement('div');
+                    const isUrgent = hours < 4;
+                    item.className = `item ${isUrgent ? 'urgent' : ''}`;
+                    
+                    item.innerHTML = `
+                        <div class="item-content">
+                            <span class="item-text">${task.text}</span>
+                            <span class="time-left">${hours}h ${mins}m remaining</span>
+                        </div>
+                        <div class="actions">
+                            <button class="action-btn promote-btn" onclick="promoteTask(${task.id})" title="Promote to Long Term">⭐</button>
+                            <button class="action-btn refresh-btn" onclick="refreshTask(${task.id})" title="Reset 24h timer">↻</button>
+                            <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, '24h')" title="Delete">×</button>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } else {
+                // Render Long Term view
+                longTermTasks.forEach(task => {
+                    const dateString = new Date(task.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    const item = document.createElement('div');
+                    item.className = 'item permanent';
+                    
+                    item.innerHTML = `
+                        <div class="item-content">
+                            <span class="item-text">${task.text}</span>
+                            <span class="time-left" style="color: var(--star)">Saved ${dateString}</span>
+                        </div>
+                        <div class="actions">
+                            <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, 'long')" title="Delete">×</button>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+        }
+
+        setInterval(saveAndRender, 60000);
+        saveAndRender();
+    </script>
+</body>
+</html>
