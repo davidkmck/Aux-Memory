@@ -1,10 +1,9 @@
 const CACHE_NAME = 'aux-memory-v1';
 const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  '/Aux-Memory/',
+  '/Aux-Memory/index.html',
+  '/Aux-Memory/manifest.json',
+  '/Aux-Memory/aux-memory.png'
 ];
 
 // Install Service Worker and cache core files
