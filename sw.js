@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aux-memory-v2';
+const CACHE_NAME = 'aux-memory-v3';
 const ASSETS = [
   '/Aux-Memory/',
   '/Aux-Memory/index.html',
