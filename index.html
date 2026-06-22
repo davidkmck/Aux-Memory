@@ -1,50 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Aux Memory</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b0f19">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         :root { 
-            --bg: #0f172a; 
-            --card: #1e293b; 
-            --text: #f8fafc; 
-            --accent: #22d3ee; 
-            --dim: #64748b; 
+            /* Refined Premium Dark Palette */
+            --bg: #0b0f19; 
+            --card: #171e2e; 
+            --text: #f1f5f9; 
+            --accent: #38bdf8; /* Vibrant Sky Blue */
+            --dim: #94a3b8; 
             --urgent: #f43f5e; 
             --star: #fbbf24;
+            --success: #10b981;
         }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
-        h1 { color: var(--accent); font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin: 20px 0 10px 0; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
+        h1 { color: var(--accent); font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin: 20px 0 10px 0; font-size: 1.5rem; }
         
         /* Navigation Tabs */
-        .tabs { display: flex; width: 100%; max-width: 340px; margin-bottom: 20px; background: var(--card); border-radius: 12px; padding: 4px; gap: 4px; }
-        .tab-btn { flex: 1; background: none; border: none; color: var(--dim); padding: 10px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.9rem;}
-        .tab-btn.active { background: var(--bg); color: var(--accent); }
+        .tabs { display: flex; width: 100%; max-width: 340px; margin-bottom: 20px; background: var(--card); border-radius: 14px; padding: 4px; gap: 4px; border: 1px solid #232d42; }
+        .tab-btn { flex: 1; background: none; border: none; color: var(--dim); padding: 12px; font-weight: 600; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 0.9rem;}
+        .tab-btn.active { background: var(--bg); color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
         .input-container { width: 100%; max-width: 340px; margin-bottom: 20px; display: flex; gap: 10px; }
-        input { flex: 1; background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 12px; color: white; outline: none; font-size: 1rem; }
-        button.add-btn { background: var(--accent); color: var(--bg); border: none; border-radius: 12px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
+        input { flex: 1; background: var(--card); border: 1px solid #232d42; border-radius: 14px; padding: 14px; color: white; outline: none; font-size: 1rem; transition: 0.2s; }
+        input:focus { border-color: var(--accent); }
+        button.add-btn { background: var(--accent); color: var(--bg); border: none; border-radius: 14px; padding: 14px 22px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button.add-btn:active { opacity: 0.8; }
 
-        .list { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
-        .item { background: var(--card); padding: 15px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); transition: 0.3s; }
+        .list { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; }
+        .item { background: var(--card); padding: 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); border: 1px solid #232d42; border-left-width: 4px; transition: 0.3s; }
         .item.urgent { border-left-color: var(--urgent); }
         .item.permanent { border-left-color: var(--star); }
         
         .item-content { flex: 1; }
-        .item-text { font-size: 1rem; margin-bottom: 4px; display: block; }
-        .time-left { font-size: 0.65rem; font-weight: bold; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .item-text { font-size: 1rem; margin-bottom: 6px; display: block; line-height: 1.4; }
+        .time-left { font-size: 0.7rem; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
         .urgent .time-left { color: var(--urgent); }
         
-        .actions { display: flex; gap: 12px; align-items: center; margin-left: 10px; }
-        .action-btn { color: var(--dim); background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; transition: color 0.2s; }
+        .actions { display: flex; gap: 14px; align-items: center; margin-left: 10px; }
+        .action-btn { color: var(--dim); background: none; border: none; font-size: 1.3rem; cursor: pointer; padding: 5px; transition: transform 0.2s, color 0.2s; }
         
-        /* Interactive States */
-        .refresh-btn:active { color: var(--accent); transform: rotate(45deg); }
+        .refresh-btn:active { color: var(--accent); transform: rotate(60deg); }
         .promote-btn:hover { color: var(--star); }
         .delete-btn:active { color: var(--urgent); }
+
+        /* Backup / Management Section */
+        .settings-panel { width: 100%; max-width: 340px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #232d42; display: flex; justify-content: space-between; gap: 10px; }
+        .util-btn { flex: 1; background: var(--card); border: 1px solid #232d42; color: var(--dim); padding: 10px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+        .util-btn:active { background: #232d42; color: var(--text); }
+        #fileInput { display: none; }
     </style>
 </head>
 <body>
@@ -57,16 +67,25 @@
     </div>
 
     <div class="input-container">
-        <input type="text" id="taskInput" placeholder="What would you like to remember?" autocomplete="off">
+        <input type="text" id="taskInput" placeholder="Remember for 24 hours..." autocomplete="off">
         <button class="add-btn" onclick="addItem()">Add</button>
     </div>
 
     <div id="taskList" class="list"></div>
 
+    <div class="settings-panel">
+        <button class="util-btn" onclick="exportData()" title="Backup data to file">
+            📥 Export Backup
+        </button>
+        <button class="util-btn" onclick="document.getElementById('fileInput').click()" title="Restore data from file">
+            📤 Import Backup
+        </button>
+        <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+    </div>
+
     <script>
         let currentTab = '24h';
         
-        // Load data from localStorage
         let tasks = JSON.parse(localStorage.getItem('memoryTasks')) || [];
         let longTermTasks = JSON.parse(localStorage.getItem('longTermTasks')) || [];
 
@@ -78,7 +97,6 @@
             document.getElementById('tab-24h').classList.toggle('active', tab === '24h');
             document.getElementById('tab-long').classList.toggle('active', tab === 'long');
             
-            // Adjust placeholder text dynamically based on the tab
             input.placeholder = tab === '24h' ? "Remember for 24 hours..." : "Remember permanently...";
             saveAndRender();
         }
@@ -116,12 +134,10 @@
         function promoteTask(id) {
             const taskToPromote = tasks.find(t => t.id === id);
             if (taskToPromote) {
-                // Remove from 24h tasks
                 tasks = tasks.filter(t => t.id !== id);
-                // Add to long term tasks
                 longTermTasks.unshift({
                     ...taskToPromote,
-                    timestamp: Date.now() // Optional: update timestamp to date of promotion
+                    timestamp: Date.now()
                 });
                 saveAndRender();
             }
@@ -131,9 +147,65 @@
             if (type === '24h') {
                 tasks = tasks.filter(t => t.id !== id);
             } else {
-                longTermTasks = goldTasks = longTermTasks.filter(t => t.id !== id);
+                longTermTasks = longTermTasks.filter(t => t.id !== id);
             }
             saveAndRender();
+        }
+
+        // --- BACKUP & RESTORE UTILITIES ---
+        function exportData() {
+            const backupData = {
+                memoryTasks: tasks,
+                longTermTasks: longTermTasks,
+                version: "1.0",
+                exportedAt: Date.now()
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            
+            const dateStr = new Date().toISOString().slice(0, 10);
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `aux-memory-backup-${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    
+                    if (imported.memoryTasks || imported.longTermTasks) {
+                        if (confirm("Are you sure you want to merge this backup with your current lists?")) {
+                            // Merge collections cleanly without creating absolute duplicates
+                            const existing24hIds = new Set(tasks.map(t => t.id));
+                            const existingLongIds = new Set(longTermTasks.map(t => t.id));
+
+                            if (imported.memoryTasks) {
+                                imported.memoryTasks.forEach(t => { if(!existing24hIds.has(t.id)) tasks.push(t); });
+                            }
+                            if (imported.longTermTasks) {
+                                imported.longTermTasks.forEach(t => { if(!existingLongIds.has(t.id)) longTermTasks.push(t); });
+                            }
+                            
+                            saveAndRender();
+                            alert("Backup imported successfully!");
+                        }
+                    } else {
+                        alert("Invalid backup file format.");
+                    }
+                } catch (err) {
+                    alert("Failed to read the backup file.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
         }
 
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
@@ -142,17 +214,14 @@
             const now = Date.now();
             const limit = 24 * 60 * 60 * 1000;
 
-            // Constantly clean out expired 24h items
             tasks = tasks.filter(t => now - t.timestamp < limit);
             
-            // Save state
             localStorage.setItem('memoryTasks', JSON.stringify(tasks));
             localStorage.setItem('longTermTasks', JSON.stringify(longTermTasks));
             
             list.innerHTML = '';
 
             if (currentTab === '24h') {
-                // Render 24 Hour view
                 tasks.forEach(task => {
                     const elapsed = now - task.timestamp;
                     const remaining = limit - elapsed;
@@ -178,7 +247,6 @@
                     list.appendChild(item);
                 });
             } else {
-                // Render Long Term view
                 longTermTasks.forEach(task => {
                     const dateString = new Date(task.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                     const item = document.createElement('div');
@@ -198,16 +266,17 @@
             }
         }
 
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered!'))
+                    .catch(err => console.log('Service Worker registration failed: ', err));
+            });
+        }
+
         setInterval(saveAndRender, 60000);
         saveAndRender();
-        // Register the service worker for PWA functionality
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registered!'))
-            .catch(err => console.log('Service Worker registration failed: ', err));
-    });
-}
     </script>
 </body>
 </html>
