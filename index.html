@@ -210,6 +210,52 @@
 
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
 
+        function requestNotificationPermission() {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        console.log('Notification permission granted.');
+      }
+    });
+  }
+}
+
+// Call this during app initialization or via a user-interaction toggle
+requestNotificationPermission();
+
+        function checkUpcomingExpirations(items) {
+  const NOW = Date.now();
+  const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
+  const TWENTY_FOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
+
+  items.forEach(item => {
+    const timeElapsed = NOW - item.createdAt;
+    const timeLeft = TWENTY_FOUR_HOURS_IN_MS - timeElapsed;
+
+    // Check if less than 2 hours remain, but it hasn't expired yet
+    if (timeLeft > 0 && timeLeft <= TWO_HOURS_IN_MS) {
+      // Ensure we only notify once per item
+      if (!item.notifiedTwoHoursLeft) {
+        triggerNotification(item);
+        item.notifiedTwoHoursLeft = true; // Flag to prevent duplicate alerts
+        // Save updated item state to localStorage/IndexedDB here
+      }
+    }
+  });
+}
+        function triggerNotification(item) {
+  if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.showNotification('Memory Expiring Soon!', {
+        body: `"${item.text}" will disappear in less than 2 hours.`,
+        icon: 'aux-mem.png',
+        tag: item.id, // Prevents duplicate notices for the same item
+        data: { url: window.location.href } 
+      });
+    });
+  }
+}
+        
         function saveAndRender() {
             const now = Date.now();
             const limit = 24 * 60 * 60 * 1000;
