@@ -34,11 +34,12 @@
         button.add-btn:active { opacity: 0.8; }
 
         .list { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; }
-        .item { background: var(--card); padding: 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); border: 1px solid #232d42; border-left-width: 4px; transition: 0.3s; }
+        .item { background: var(--card); padding: 16px; border-radius: 16px; display: flex; flex-direction: column; border-left: 4px solid var(--accent); border: 1px solid #232d42; border-left-width: 4px; transition: 0.3s; }
         .item.urgent { border-left-color: var(--urgent); }
         .item.permanent { border-left-color: var(--star); }
         
-        .item-content { flex: 1; }
+        .item-main { display: flex; width: 100%; justify-content: space-between; align-items: center; }
+        .item-content { flex: 1; cursor: pointer; }
         .item-text { font-size: 1rem; margin-bottom: 6px; display: block; line-height: 1.4; }
         .time-left { font-size: 0.7rem; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
         .urgent .time-left { color: var(--urgent); }
@@ -49,6 +50,14 @@
         .refresh-btn:active { color: var(--accent); transform: rotate(60deg); }
         .promote-btn:hover { color: var(--star); }
         .delete-btn:active { color: var(--urgent); }
+
+        /* Dynamic Time Slider Control Styles */
+        .time-control-panel { background: rgba(255, 255, 255, 0.03); width: 100%; padding: 12px; border-radius: 10px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #232d42; box-sizing: border-box; }
+        .time-control-panel label { font-size: 0.8rem; color: var(--dim); }
+        .time-control-panel .hours-display { color: var(--accent); font-weight: bold; }
+        .duration-slider { width: 100%; cursor: pointer; accent-color: var(--accent); margin: 4px 0; }
+        .save-time-btn { background: #232d42; color: var(--text); border: 1px solid #334155; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; align-self: flex-end; transition: 0.2s; }
+        .save-time-btn:active { background: var(--accent); color: var(--bg); }
 
         /* Backup / Management Section */
         .settings-panel { width: 100%; max-width: 340px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #232d42; display: flex; justify-content: space-between; gap: 10px; }
@@ -85,6 +94,7 @@
 
     <script>
         let currentTab = '24h';
+        let activeSliderTaskId = null; // Keeps track of which item's duration control panel is open
         
         let tasks = JSON.parse(localStorage.getItem('memoryTasks')) || [];
         let longTermTasks = JSON.parse(localStorage.getItem('longTermTasks')) || [];
@@ -94,6 +104,7 @@
 
         function switchTab(tab) {
             currentTab = tab;
+            activeSliderTaskId = null; // Close any active panels when changing tabs
             document.getElementById('tab-24h').classList.toggle('active', tab === '24h');
             document.getElementById('tab-long').classList.toggle('active', tab === 'long');
             
@@ -108,7 +119,8 @@
             const newTask = {
                 id: Date.now(),
                 text: val,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                notifiedTwoHoursLeft: false
             };
 
             if (currentTab === '24h') {
@@ -124,7 +136,7 @@
         function refreshTask(id) {
             tasks = tasks.map(t => {
                 if (t.id === id) {
-                    return { ...t, timestamp: Date.now() };
+                    return { ...t, timestamp: Date.now(), notifiedTwoHoursLeft: false };
                 }
                 return t;
             });
@@ -135,6 +147,7 @@
             const taskToPromote = tasks.find(t => t.id === id);
             if (taskToPromote) {
                 tasks = tasks.filter(t => t.id !== id);
+                if (activeSliderTaskId === id) activeSliderTaskId = null;
                 longTermTasks.unshift({
                     ...taskToPromote,
                     timestamp: Date.now()
@@ -146,9 +159,34 @@
         function deleteTask(id, type) {
             if (type === '24h') {
                 tasks = tasks.filter(t => t.id !== id);
+                if (activeSliderTaskId === id) activeSliderTaskId = null;
             } else {
                 longTermTasks = longTermTasks.filter(t => t.id !== id);
             }
+            saveAndRender();
+        }
+
+        function toggleSliderPanel(id) {
+            activeSliderTaskId = activeSliderTaskId === id ? null : id;
+            saveAndRender();
+        }
+
+        function updateItemDuration(id, hoursLeft) {
+            const limit = 24 * 60 * 60 * 1000;
+            const newTimeLeftMs = hoursLeft * 60 * 60 * 1000;
+            
+            tasks = tasks.map(t => {
+                if (t.id === id) {
+                    const updatedTimestamp = Date.now() - (limit - newTimeLeftMs);
+                    return {
+                        ...t,
+                        timestamp: updatedTimestamp,
+                        notifiedTwoHoursLeft: hoursLeft > 2 ? false : t.notifiedTwoHoursLeft
+                    };
+                }
+                return t;
+            });
+            activeSliderTaskId = null; // Close control pane after modification saving
             saveAndRender();
         }
 
@@ -183,7 +221,6 @@
                     
                     if (imported.memoryTasks || imported.longTermTasks) {
                         if (confirm("Are you sure you want to merge this backup with your current lists?")) {
-                            // Merge collections cleanly without creating absolute duplicates
                             const existing24hIds = new Set(tasks.map(t => t.id));
                             const existingLongIds = new Set(longTermTasks.map(t => t.id));
 
@@ -205,62 +242,68 @@
                 }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Reset file input
+            event.target.value = ''; 
         }
 
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
 
         function requestNotificationPermission() {
-  if ('Notification' in window) {
-    Notification.requestPermission().then(permission => {
-      if (permission === 'granted') {
-        console.log('Notification permission granted.');
-      }
-    });
-  }
-}
-
-// Call this during app initialization or via a user-interaction toggle
-requestNotificationPermission();
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Notification permission granted.');
+                    }
+                });
+            }
+        }
+        requestNotificationPermission();
 
         function checkUpcomingExpirations(items) {
-  const NOW = Date.now();
-  const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
-  const TWENTY_FOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
+            const NOW = Date.now();
+            const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
+            const TWENTY_FOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
 
-  items.forEach(item => {
-    const timeElapsed = NOW - item.createdAt;
-    const timeLeft = TWENTY_FOUR_HOURS_IN_MS - timeElapsed;
+            let updatedStateChange = false;
 
-    // Check if less than 2 hours remain, but it hasn't expired yet
-    if (timeLeft > 0 && timeLeft <= TWO_HOURS_IN_MS) {
-      // Ensure we only notify once per item
-      if (!item.notifiedTwoHoursLeft) {
-        triggerNotification(item);
-        item.notifiedTwoHoursLeft = true; // Flag to prevent duplicate alerts
-        // Save updated item state to localStorage/IndexedDB here
-      }
-    }
-  });
-}
+            items.forEach(item => {
+                const timeElapsed = NOW - item.timestamp;
+                const timeLeft = TWENTY_FOUR_HOURS_IN_MS - timeElapsed;
+
+                if (timeLeft > 0 && timeLeft <= TWO_HOURS_IN_MS) {
+                    if (!item.notifiedTwoHoursLeft) {
+                        triggerNotification(item);
+                        item.notifiedTwoHoursLeft = true;
+                        updatedStateChange = true;
+                    }
+                }
+            });
+
+            if (updatedStateChange) {
+                localStorage.setItem('memoryTasks', JSON.stringify(tasks));
+            }
+        }
+
         function triggerNotification(item) {
-  if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(registration => {
-      registration.showNotification('Memory Expiring Soon!', {
-        body: `"${item.text}" will disappear in less than 2 hours.`,
-        icon: 'aux-mem.png',
-        tag: item.id, // Prevents duplicate notices for the same item
-        data: { url: window.location.href } 
-      });
-    });
-  }
-}
+            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification('Memory Expiring Soon!', {
+                        body: `"${item.text}" will disappear in less than 2 hours.`,
+                        icon: 'aux-mem.png',
+                        tag: item.id, 
+                        data: { url: window.location.href } 
+                    });
+                });
+            }
+        }
         
         function saveAndRender() {
             const now = Date.now();
             const limit = 24 * 60 * 60 * 1000;
 
             tasks = tasks.filter(t => now - t.timestamp < limit);
+            
+            // Periodically cross check durations to fire PWA alerts if due
+            checkUpcomingExpirations(tasks);
             
             localStorage.setItem('memoryTasks', JSON.stringify(tasks));
             localStorage.setItem('longTermTasks', JSON.stringify(longTermTasks));
@@ -279,16 +322,37 @@ requestNotificationPermission();
                     const isUrgent = hours < 4;
                     item.className = `item ${isUrgent ? 'urgent' : ''}`;
                     
+                    const sliderValue = (remaining / (1000 * 60 * 60)).toFixed(1);
+                    const isSliderOpen = activeSliderTaskId === task.id;
+
                     item.innerHTML = `
-                        <div class="item-content">
-                            <span class="item-text">${task.text}</span>
-                            <span class="time-left">${hours}h ${mins}m remaining</span>
+                        <div class="item-main">
+                            <div class="item-content" onclick="toggleSliderPanel(${task.id})">
+                                <span class="item-text">${task.text}</span>
+                                <span class="time-left">${hours}h ${mins}m remaining</span>
+                            </div>
+                            <div class="actions">
+                                <button class="action-btn promote-btn" onclick="promoteTask(${task.id})" title="Promote to Long Term">⭐</button>
+                                <button class="action-btn refresh-btn" onclick="refreshTask(${task.id})" title="Reset 24h timer">↻</button>
+                                <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, '24h')" title="Delete">×</button>
+                            </div>
                         </div>
-                        <div class="actions">
-                            <button class="action-btn promote-btn" onclick="promoteTask(${task.id})" title="Promote to Long Term">⭐</button>
-                            <button class="action-btn refresh-btn" onclick="refreshTask(${task.id})" title="Reset 24h timer">↻</button>
-                            <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, '24h')" title="Delete">×</button>
-                        </div>
+                        ${isSliderOpen ? `
+                            <div class="time-control-panel" onclick="event.stopPropagation()">
+                                <label>Adjust remaining: <span class="hours-display" id="display-${task.id}">${sliderValue}</span>h</label>
+                                <input 
+                                    type="range" 
+                                    min="0.1" 
+                                    max="24" 
+                                    step="0.1" 
+                                    value="${sliderValue}" 
+                                    class="duration-slider"
+                                    oninput="document.getElementById('display-${task.id}').textContent = parseFloat(this.value).toFixed(1)"
+                                    id="slider-${task.id}"
+                                >
+                                <button class="save-time-btn" onclick="updateItemDuration(${task.id}, parseFloat(document.getElementById('slider-${task.id}').value))">Save Changes</button>
+                            </div>
+                        ` : ''}
                     `;
                     list.appendChild(item);
                 });
@@ -299,12 +363,14 @@ requestNotificationPermission();
                     item.className = 'item permanent';
                     
                     item.innerHTML = `
-                        <div class="item-content">
-                            <span class="item-text">${task.text}</span>
-                            <span class="time-left" style="color: var(--star)">Saved ${dateString}</span>
-                        </div>
-                        <div class="actions">
-                            <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, 'long')" title="Delete">×</button>
+                        <div class="item-main">
+                            <div class="item-content">
+                                <span class="item-text">${task.text}</span>
+                                <span class="time-left" style="color: var(--star)">Saved ${dateString}</span>
+                            </div>
+                            <div class="actions">
+                                <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, 'long')" title="Delete">×</button>
+                            </div>
                         </div>
                     `;
                     list.appendChild(item);
