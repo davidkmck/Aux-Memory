@@ -167,21 +167,18 @@
             saveAndRender();
         }
 
-        function promoteTask(id) {
-            const taskToPromote = tasks.find(t => t.id === id);
-            if (taskToPromote) {
-                tasks = tasks.filter(t => t.id !== id);
-                if (activeSliderTaskId === id) activeSliderTaskId = null;
-                longTermTasks.unshift({
-                    ...taskToPromote,
-                    timestamp: Date.now()
-                });
-// Switch to long-term tab and set selection
-        switchTab('long'); 
+function promoteTask(id) {
+    const taskToPromote = tasks.find(t => t.id === id);
+    if (taskToPromote) {
+        tasks = tasks.filter(t => t.id !== id);
+        if (activeSliderTaskId === id) activeSliderTaskId = null;
+        
+        longTermTasks.unshift({...taskToPromote, timestamp: Date.now() });
+        
         selectedId = id;
-        saveAndRender();
-            }
-        }
+        switchTab('long'); // This calls saveAndRender() internally
+    }
+}
 
         function deleteTask(id, type) {
             if (type === '24h') {
@@ -453,9 +450,6 @@
                     list.appendChild(item);
                 });
             }
-
-            // At the bottom of saveAndRender()
-            list.appendChild(item);
             
             // This executes the scroll once the DOM is ready
             handleSelection();
