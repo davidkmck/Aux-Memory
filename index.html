@@ -68,18 +68,28 @@
         }
 
         .promote-btn {
-            color: #2ecc71; /* A nice "promote" green */
+            color: #2ecc71;
             font-weight: bold;
         }
 
         .promote-btn:hover {
             color: #27ae60;
-            transform: translateY(-2px); /* Subtle animation to show upward movement */
+            transform: translateY(-2px);
+        }
+
+        .demote-btn {
+            color: #f59e0b; /* Amber/orange to signify demotion */
+            font-weight: bold;
+        }
+
+        .demote-btn:hover {
+            color: #d97706;
+            transform: translateY(2px); /* Subtle animation moving down */
         }
 
         .selected-item {
-            border: 2px solid var(--accent);
-            background-color: rgba(56, 189, 248, 0.1); /* Matches your --accent with opacity */
+            border: 2px solid var(--accent) !important;
+            background-color: rgba(56, 189, 248, 0.1);
         }
         #fileInput { display: none; }
     </style>
@@ -116,7 +126,7 @@
     <script>
         let selectedId = null;
         let currentTab = '24h';
-        let activeSliderTaskId = null; // Keeps track of which item's duration control panel is open
+        let activeSliderTaskId = null; 
         
         let tasks = JSON.parse(localStorage.getItem('memoryTasks')) || [];
         let longTermTasks = JSON.parse(localStorage.getItem('longTermTasks')) || [];
@@ -126,12 +136,15 @@
 
         function switchTab(tab) {
             currentTab = tab;
-            activeSliderTaskId = null; // Close any active panels when changing tabs
+            activeSliderTaskId = null; 
             document.getElementById('tab-24h').classList.toggle('active', tab === '24h');
             document.getElementById('tab-long').classList.toggle('active', tab === 'long');
             
             input.placeholder = tab === '24h' ? "Remember for 24 hours..." : "Remember permanently...";
             saveAndRender();
+            
+            // Add a tiny delay to ensure the DOM paints before we try to scroll
+            setTimeout(handleSelection, 50); 
         }
 
         function addItem() {
@@ -152,9 +165,9 @@
             }
         
             input.value = '';
-            // Set selection and render
             selectedId = newTask.id; 
             saveAndRender();
+            setTimeout(handleSelection, 50);
         }
 
         function refreshTask(id) {
@@ -167,18 +180,31 @@
             saveAndRender();
         }
 
-function promoteTask(id) {
-    const taskToPromote = tasks.find(t => t.id === id);
-    if (taskToPromote) {
-        tasks = tasks.filter(t => t.id !== id);
-        if (activeSliderTaskId === id) activeSliderTaskId = null;
-        
-        longTermTasks.unshift({...taskToPromote, timestamp: Date.now() });
-        
-        selectedId = id;
-        switchTab('long'); // This calls saveAndRender() internally
-    }
-}
+        function promoteTask(id) {
+            const taskToPromote = tasks.find(t => t.id === id);
+            if (taskToPromote) {
+                tasks = tasks.filter(t => t.id !== id);
+                if (activeSliderTaskId === id) activeSliderTaskId = null;
+                
+                longTermTasks.unshift({...taskToPromote, timestamp: Date.now() });
+                
+                selectedId = id;
+                switchTab('long'); 
+            }
+        }
+
+        function demoteTask(id) {
+            const taskToDemote = longTermTasks.find(t => t.id === id);
+            if (taskToDemote) {
+                longTermTasks = longTermTasks.filter(t => t.id !== id);
+                
+                // Push back to 24h list with fresh timestamp
+                tasks.unshift({ ...taskToDemote, timestamp: Date.now() });
+                
+                selectedId = id;
+                switchTab('24h');
+            }
+        }
 
         function deleteTask(id, type) {
             if (type === '24h') {
@@ -201,8 +227,7 @@ function promoteTask(id) {
                     saveAndRender();
                 }
             }
-}
-
+        }
 
         function handleSelection() {
             if (selectedId) {
@@ -210,11 +235,8 @@ function promoteTask(id) {
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-                // Optional: Reset it so it doesn't stay highlighted forever
                 setTimeout(() => { 
                     selectedId = null; 
-                    // Optional: Re-render to remove the class if you want the highlight to fade
-                    // saveAndRender(); 
                 }, 2000);
             }
         }
@@ -239,11 +261,10 @@ function promoteTask(id) {
                 }
                 return t;
             });
-            activeSliderTaskId = null; // Close control pane after modification saving
+            activeSliderTaskId = null; 
             saveAndRender();
         }
 
-        // --- BACKUP & RESTORE UTILITIES ---
         function exportData() {
             const backupData = {
                 memoryTasks: tasks,
@@ -358,8 +379,6 @@ function promoteTask(id) {
             const limit = 24 * 60 * 60 * 1000;
 
             tasks = tasks.filter(t => now - t.timestamp < limit);
-            
-            // Periodically cross check durations to fire PWA alerts if due
             checkUpcomingExpirations(tasks);
             
             localStorage.setItem('memoryTasks', JSON.stringify(tasks));
@@ -376,15 +395,13 @@ function promoteTask(id) {
                     const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
                     
                     const item = document.createElement('div');
-                    item.id = `task-${task.id}`; // Add this!
-                    // Add this check:
-                    if (task.id === selectedId) {
-                        item.classList.add('selected-item');
-                    }
-
-                    /////
+                    item.id = `task-${task.id}`;
+                    
                     const isUrgent = hours < 4;
-                    item.className = `item ${isUrgent ? 'urgent' : ''}`;
+                    const isSelectedClass = (task.id === selectedId) ? 'selected-item' : '';
+                    
+                    // Fixed the className assignment so it doesn't overwrite selected-item
+                    item.className = `item ${isUrgent ? 'urgent' : ''} ${isSelectedClass}`;
                     
                     const sliderValue = (remaining / (1000 * 60 * 60)).toFixed(1);
                     const isSliderOpen = activeSliderTaskId === task.id;
@@ -427,14 +444,12 @@ function promoteTask(id) {
                 longTermTasks.forEach(task => {
                     const dateString = new Date(task.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                     const item = document.createElement('div');
-                    item.id = `task-${task.id}`; // Add this!
-                           // Add this check:
-                    if (task.id === selectedId) {
-                        item.classList.add('selected-item');
-                    }
-
-                    /////
-                    item.className = 'item permanent';
+                    item.id = `task-${task.id}`;
+                    
+                    const isSelectedClass = (task.id === selectedId) ? 'selected-item' : '';
+                    
+                    // Fixed the className assignment here too
+                    item.className = `item permanent ${isSelectedClass}`;
                     
                     item.innerHTML = `
                         <div class="item-main">
@@ -443,6 +458,8 @@ function promoteTask(id) {
                                 <span class="time-left" style="color: var(--star)">Saved ${dateString}</span>
                             </div>
                             <div class="actions">
+                                <button class="action-btn demote-btn" onclick="demoteTask(${task.id})" title="Demote to 24h">⬇</button>
+                                <button class="action-btn edit-btn" onclick="editTask(${task.id}, 'long')" title="Edit">✎</button>
                                 <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, 'long')" title="Delete">×</button>
                             </div>
                         </div>
@@ -450,25 +467,14 @@ function promoteTask(id) {
                     list.appendChild(item);
                 });
             }
-            
-            // This executes the scroll once the DOM is ready
-            handleSelection();
         }
 
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => console.log('Service Worker registered!'))
                     .catch(err => console.log('Service Worker registration failed: ', err));
             });
-        }
-
-        // Inside the 24h loop AND the longTerm loop, when creating the 'item' div:
-        const item = document.createElement('div');
-        // Add this check:
-        if (task.id === selectedId) {
-            item.classList.add('selected-item');
         }
 
         setInterval(saveAndRender, 60000);
