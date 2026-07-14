@@ -109,6 +109,7 @@
 </div>
 
     <script>
+        let selectedId = null;
         let currentTab = '24h';
         let activeSliderTaskId = null; // Keeps track of which item's duration control panel is open
         
@@ -138,14 +139,16 @@
                 timestamp: Date.now(),
                 notifiedTwoHoursLeft: false
             };
-
+        
             if (currentTab === '24h') {
                 tasks.unshift(newTask);
             } else {
                 longTermTasks.unshift(newTask);
             }
-
+        
             input.value = '';
+            // Set selection and render
+            selectedId = newTask.id; 
             saveAndRender();
         }
 
@@ -168,7 +171,10 @@
                     ...taskToPromote,
                     timestamp: Date.now()
                 });
-                saveAndRender();
+// Switch to long-term tab and set selection
+        switchTab('long'); 
+        selectedId = id;
+        saveAndRender();
             }
         }
 
@@ -180,6 +186,32 @@
                 longTermTasks = longTermTasks.filter(t => t.id !== id);
             }
             saveAndRender();
+        }
+
+        function editTask(id, type) {
+            const listToSearch = (type === '24h') ? tasks : longTermTasks;
+            const task = listToSearch.find(t => t.id === id);
+            
+            if (task) {
+                const newText = prompt("Edit your entry:", task.text);
+                if (newText !== null && newText.trim() !== "") {
+                    task.text = newText.trim();
+                    saveAndRender();
+                }
+            }
+}
+
+
+        function handleSelection() {
+            if (selectedId) {
+                const el = document.getElementById(`task-${selectedId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('selected-item'); // Ensure you have this class in CSS
+                }
+                // Optional: Reset selection after a short time
+                // setTimeout(() => { selectedId = null; }, 2000);
+            }
         }
 
         function toggleSliderPanel(id) {
@@ -263,19 +295,19 @@
 
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
 
- function requestNotificationPermission() {
-  if ('Notification' in window) {
-    Notification.requestPermission().then(permission => {
-      if (permission === 'granted') {
-        alert('Alerts enabled! You will be notified when items are expiring.');
-      } else {
-        alert('Alert permission denied. Check your browser settings.');
-      }
-    });
-  } else {
-    alert('Your browser does not support notifications.');
-  }
-}
+         function requestNotificationPermission() {
+          if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                alert('Alerts enabled! You will be notified when items are expiring.');
+              } else {
+                alert('Alert permission denied. Check your browser settings.');
+              }
+            });
+          } else {
+            alert('Your browser does not support notifications.');
+          }
+        }
         requestNotificationPermission();
 
         function checkUpcomingExpirations(items) {
@@ -410,21 +442,10 @@
             });
         }
 
-function editTask(id, type) {
-    const listToSearch = (type === '24h') ? tasks : longTermTasks;
-    const task = listToSearch.find(t => t.id === id);
-    
-    if (task) {
-        const newText = prompt("Edit your entry:", task.text);
-        if (newText !== null && newText.trim() !== "") {
-            task.text = newText.trim();
-            saveAndRender();
-        }
-    }
-}
-        
+
 
         setInterval(saveAndRender, 60000);
+        handleSelection();
         saveAndRender();
     </script>
 </body>
