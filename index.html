@@ -82,15 +82,18 @@
 
     <div id="taskList" class="list"></div>
 
-    <div class="settings-panel">
-        <button class="util-btn" onclick="exportData()" title="Backup data to file">
-            📥 Export Backup
-        </button>
-        <button class="util-btn" onclick="document.getElementById('fileInput').click()" title="Restore data from file">
-            📤 Import Backup
-        </button>
-        <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
-    </div>
+  <div class="settings-panel">
+  <button class="util-btn" onclick="requestNotificationPermission()" title="Enable Alerts">
+    🔔 Enable Alerts
+  </button>
+  <button class="util-btn" onclick="exportData()" title="Backup data to file">
+    📥 Export Backup
+  </button>
+  <button class="util-btn" onclick="document.getElementById('fileInput').click()" title="Restore data from file">
+    📤 Import Backup
+  </button>
+  <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+</div>
 
     <script>
         let currentTab = '24h';
@@ -247,15 +250,19 @@
 
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
 
-        function requestNotificationPermission() {
-            if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        console.log('Notification permission granted.');
-                    }
-                });
-            }
-        }
+ function requestNotificationPermission() {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        alert('Alerts enabled! You will be notified when items are expiring.');
+      } else {
+        alert('Alert permission denied. Check your browser settings.');
+      }
+    });
+  } else {
+    alert('Your browser does not support notifications.');
+  }
+}
         requestNotificationPermission();
 
         function checkUpcomingExpirations(items) {
