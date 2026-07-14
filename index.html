@@ -68,14 +68,19 @@
         }
 
         .promote-btn {
-    color: #2ecc71; /* A nice "promote" green */
-    font-weight: bold;
-}
+            color: #2ecc71; /* A nice "promote" green */
+            font-weight: bold;
+        }
 
-.promote-btn:hover {
-    color: #27ae60;
-    transform: translateY(-2px); /* Subtle animation to show upward movement */
-}
+        .promote-btn:hover {
+            color: #27ae60;
+            transform: translateY(-2px); /* Subtle animation to show upward movement */
+        }
+
+        .selected-item {
+            border: 2px solid var(--accent);
+            background-color: rgba(56, 189, 248, 0.1); /* Matches your --accent with opacity */
+        }
         #fileInput { display: none; }
     </style>
 </head>
@@ -207,10 +212,13 @@
                 const el = document.getElementById(`task-${selectedId}`);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.classList.add('selected-item'); // Ensure you have this class in CSS
                 }
-                // Optional: Reset selection after a short time
-                // setTimeout(() => { selectedId = null; }, 2000);
+                // Optional: Reset it so it doesn't stay highlighted forever
+                setTimeout(() => { 
+                    selectedId = null; 
+                    // Optional: Re-render to remove the class if you want the highlight to fade
+                    // saveAndRender(); 
+                }, 2000);
             }
         }
 
@@ -371,6 +379,13 @@
                     const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
                     
                     const item = document.createElement('div');
+                    item.id = `task-${task.id}`; // Add this!
+                    // Add this check:
+                    if (task.id === selectedId) {
+                        item.classList.add('selected-item');
+                    }
+
+                    /////
                     const isUrgent = hours < 4;
                     item.className = `item ${isUrgent ? 'urgent' : ''}`;
                     
@@ -415,6 +430,13 @@
                 longTermTasks.forEach(task => {
                     const dateString = new Date(task.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                     const item = document.createElement('div');
+                    item.id = `task-${task.id}`; // Add this!
+                           // Add this check:
+                    if (task.id === selectedId) {
+                        item.classList.add('selected-item');
+                    }
+
+                    /////
                     item.className = 'item permanent';
                     
                     item.innerHTML = `
@@ -431,6 +453,12 @@
                     list.appendChild(item);
                 });
             }
+
+            // At the bottom of saveAndRender()
+            list.appendChild(item);
+            
+            // This executes the scroll once the DOM is ready
+            handleSelection();
         }
 
         // Service Worker Registration
@@ -442,10 +470,14 @@
             });
         }
 
-
+        // Inside the 24h loop AND the longTerm loop, when creating the 'item' div:
+        const item = document.createElement('div');
+        // Add this check:
+        if (task.id === selectedId) {
+            item.classList.add('selected-item');
+        }
 
         setInterval(saveAndRender, 60000);
-        handleSelection();
         saveAndRender();
     </script>
 </body>
