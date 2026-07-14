@@ -48,7 +48,6 @@
         .action-btn { color: var(--dim); background: none; border: none; font-size: 1.3rem; cursor: pointer; padding: 5px; transition: transform 0.2s, color 0.2s; }
         
         .refresh-btn:active { color: var(--accent); transform: rotate(60deg); }
-        .promote-btn:hover { color: var(--star); }
         .delete-btn:active { color: var(--urgent); }
 
         /* Dynamic Time Slider Control Styles */
@@ -67,6 +66,16 @@
         .edit-btn:hover {
             color: var(--accent);
         }
+
+        .promote-btn {
+    color: #2ecc71; /* A nice "promote" green */
+    font-weight: bold;
+}
+
+.promote-btn:hover {
+    color: #27ae60;
+    transform: translateY(-2px); /* Subtle animation to show upward movement */
+}
         #fileInput { display: none; }
     </style>
 </head>
@@ -343,7 +352,9 @@
                                 <span class="time-left">${hours}h ${mins}m remaining</span>
                             </div>
                             <div class="actions">
-                                <button class="action-btn promote-btn" onclick="promoteTask(${task.id})" title="Promote to Long Term">⭐</button>
+                                <button class="action-btn promote-btn" onclick="promoteTask(${task.id})" title="Promote to Long-term">
+                                ⬆
+                                </button>
                                 <button class="action-btn refresh-btn" onclick="refreshTask(${task.id})" title="Reset 24h timer">↻</button>
                                 <button class="action-btn edit-btn" onclick="editTask(${task.id}, '24h')" title="Edit">✎</button>
                                 <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, '24h')" title="Delete">×</button>
