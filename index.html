@@ -110,18 +110,15 @@
 
     <div id="taskList" class="list"></div>
 
-  <div class="settings-panel">
-  <button class="util-btn" onclick="requestNotificationPermission()" title="Enable Alerts">
-    🔔 Enable Alerts
-  </button>
-  <button class="util-btn" onclick="exportData()" title="Backup data to file">
-    📥 Export Backup
-  </button>
-  <button class="util-btn" onclick="document.getElementById('fileInput').click()" title="Restore data from file">
-    📤 Import Backup
-  </button>
-  <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
-</div>
+    <div class="settings-panel">
+        <button class="util-btn" onclick="exportData()" title="Backup data to file">
+            📥 Export Backup
+        </button>
+        <button class="util-btn" onclick="document.getElementById('fileInput').click()" title="Restore data from file">
+            📤 Import Backup
+        </button>
+        <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+    </div>
 
     <script>
         let selectedId = null;
@@ -154,8 +151,7 @@
             const newTask = {
                 id: Date.now(),
                 text: val,
-                timestamp: Date.now(),
-                notifiedTwoHoursLeft: false
+                timestamp: Date.now()
             };
         
             if (currentTab === '24h') {
@@ -173,7 +169,7 @@
         function refreshTask(id) {
             tasks = tasks.map(t => {
                 if (t.id === id) {
-                    return { ...t, timestamp: Date.now(), notifiedTwoHoursLeft: false };
+                    return { ...t, timestamp: Date.now() };
                 }
                 return t;
             });
@@ -255,8 +251,7 @@
                     const updatedTimestamp = Date.now() - (limit - newTimeLeftMs);
                     return {
                         ...t,
-                        timestamp: updatedTimestamp,
-                        notifiedTwoHoursLeft: hoursLeft > 2 ? false : t.notifiedTwoHoursLeft
+                        timestamp: updatedTimestamp
                     };
                 }
                 return t;
@@ -320,66 +315,12 @@
         }
 
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(); });
-
-         function requestNotificationPermission() {
-          if ('Notification' in window) {
-            Notification.requestPermission().then(permission => {
-              if (permission === 'granted') {
-                alert('Alerts enabled! You will be notified when items are expiring.');
-              } else {
-                alert('Alert permission denied. Check your browser settings.');
-              }
-            });
-          } else {
-            alert('Your browser does not support notifications.');
-          }
-        }
-        requestNotificationPermission();
-
-        function checkUpcomingExpirations(items) {
-            const NOW = Date.now();
-            const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
-            const TWENTY_FOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
-
-            let updatedStateChange = false;
-
-            items.forEach(item => {
-                const timeElapsed = NOW - item.timestamp;
-                const timeLeft = TWENTY_FOUR_HOURS_IN_MS - timeElapsed;
-
-                if (timeLeft > 0 && timeLeft <= TWO_HOURS_IN_MS) {
-                    if (!item.notifiedTwoHoursLeft) {
-                        triggerNotification(item);
-                        item.notifiedTwoHoursLeft = true;
-                        updatedStateChange = true;
-                    }
-                }
-            });
-
-            if (updatedStateChange) {
-                localStorage.setItem('memoryTasks', JSON.stringify(tasks));
-            }
-        }
-
-        function triggerNotification(item) {
-            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification('Memory Expiring Soon!', {
-                        body: `"${item.text}" will disappear in less than 2 hours.`,
-                        icon: 'aux-mem.png',
-                        tag: item.id, 
-                        data: { url: window.location.href } 
-                    });
-                });
-            }
-        }
         
         function saveAndRender() {
             const now = Date.now();
             const limit = 24 * 60 * 60 * 1000;
 
             tasks = tasks.filter(t => now - t.timestamp < limit);
-            checkUpcomingExpirations(tasks);
             
             localStorage.setItem('memoryTasks', JSON.stringify(tasks));
             localStorage.setItem('longTermTasks', JSON.stringify(longTermTasks));
@@ -400,7 +341,6 @@
                     const isUrgent = hours < 4;
                     const isSelectedClass = (task.id === selectedId) ? 'selected-item' : '';
                     
-                    // Fixed the className assignment so it doesn't overwrite selected-item
                     item.className = `item ${isUrgent ? 'urgent' : ''} ${isSelectedClass}`;
                     
                     const sliderValue = (remaining / (1000 * 60 * 60)).toFixed(1);
@@ -448,7 +388,6 @@
                     
                     const isSelectedClass = (task.id === selectedId) ? 'selected-item' : '';
                     
-                    // Fixed the className assignment here too
                     item.className = `item permanent ${isSelectedClass}`;
                     
                     item.innerHTML = `
