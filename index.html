@@ -212,13 +212,30 @@
             }
         }
 
-        function deleteTask(id, type) {
+function deleteTask(id, type) {
             if (type === '24h') {
-                tasks = tasks.filter(t => t.id !== id);
-                if (activeSliderTaskId === id) activeSliderTaskId = null;
+                const taskToMove = tasks.find(t => t.id === id);
+                if (taskToMove) {
+                    tasks = tasks.filter(t => t.id !== id);
+                    if (activeSliderTaskId === id) activeSliderTaskId = null;
+                    
+                    // Push to forgotten if not already there
+                    if (!forgottenTasks.some(ft => ft.id === id)) {
+                        forgottenTasks.unshift({ ...taskToMove, timestamp: Date.now() });
+                    }
+                }
             } else if (type === 'long') {
-                longTermTasks = longTermTasks.filter(t => t.id !== id);
+                const taskToMove = longTermTasks.find(t => t.id === id);
+                if (taskToMove) {
+                    longTermTasks = longTermTasks.filter(t => t.id !== id);
+                    
+                    // Push to forgotten if not already there
+                    if (!forgottenTasks.some(ft => ft.id === id)) {
+                        forgottenTasks.unshift({ ...taskToMove, timestamp: Date.now() });
+                    }
+                }
             } else if (type === 'forgotten') {
+                // Permanently delete from forgotten
                 forgottenTasks = forgottenTasks.filter(t => t.id !== id);
             }
             saveAndRender();
