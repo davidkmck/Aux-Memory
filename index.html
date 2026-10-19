@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+         <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -84,7 +84,17 @@
 
         .demote-btn:hover {
             color: #d97706;
-            transform: translateY(2px); /* Subtle animation moving down */
+            transform: translateY(2px);
+        }
+
+        .restore-btn {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .restore-btn:hover {
+            color: #059669;
+            transform: scale(1.1);
         }
 
         .selected-item {
@@ -149,8 +159,6 @@
             }
             
             saveAndRender();
-            
-            // Add a tiny delay to ensure the DOM paints before we try to scroll
             setTimeout(handleSelection, 50); 
         }
 
@@ -203,8 +211,6 @@
             const taskToDemote = longTermTasks.find(t => t.id === id);
             if (taskToDemote) {
                 longTermTasks = longTermTasks.filter(t => t.id !== id);
-                
-                // Push back to 24h list with fresh timestamp
                 tasks.unshift({ ...taskToDemote, timestamp: Date.now() });
                 
                 selectedId = id;
@@ -212,14 +218,24 @@
             }
         }
 
-function deleteTask(id, type) {
+        function restoreTask(id) {
+            const taskToRestore = forgottenTasks.find(t => t.id === id);
+            if (taskToRestore) {
+                forgottenTasks = forgottenTasks.filter(t => t.id !== id);
+                tasks.unshift({ ...taskToRestore, timestamp: Date.now() });
+                
+                selectedId = id;
+                switchTab('24h');
+            }
+        }
+
+        function deleteTask(id, type) {
             if (type === '24h') {
                 const taskToMove = tasks.find(t => t.id === id);
                 if (taskToMove) {
                     tasks = tasks.filter(t => t.id !== id);
                     if (activeSliderTaskId === id) activeSliderTaskId = null;
                     
-                    // Push to forgotten if not already there
                     if (!forgottenTasks.some(ft => ft.id === id)) {
                         forgottenTasks.unshift({ ...taskToMove, timestamp: Date.now() });
                     }
@@ -229,13 +245,11 @@ function deleteTask(id, type) {
                 if (taskToMove) {
                     longTermTasks = longTermTasks.filter(t => t.id !== id);
                     
-                    // Push to forgotten if not already there
                     if (!forgottenTasks.some(ft => ft.id === id)) {
                         forgottenTasks.unshift({ ...taskToMove, timestamp: Date.now() });
                     }
                 }
             } else if (type === 'forgotten') {
-                // Permanently delete from forgotten
                 forgottenTasks = forgottenTasks.filter(t => t.id !== id);
             }
             saveAndRender();
@@ -357,7 +371,6 @@ function deleteTask(id, type) {
             const now = Date.now();
             const limit = 24 * 60 * 60 * 1000;
 
-            // Move expired 24h items into forgotten tasks instead of dropping them
             const activeTasks = [];
             tasks.forEach(t => {
                 if (now - t.timestamp < limit) {
@@ -402,9 +415,7 @@ function deleteTask(id, type) {
                                 <span class="time-left">${hours}h ${mins}m remaining</span>
                             </div>
                             <div class="actions">
-                                <button class="action-btn promote-btn" onclick="promoteTask(${task.id})" title="Promote to Long-term">
-                                ⬆
-                                </button>
+                                <button class="action-btn promote-btn" onclick="promoteTask(${task.id})" title="Promote to Long-term">⬆</button>
                                 <button class="action-btn refresh-btn" onclick="refreshTask(${task.id})" title="Reset 24h timer">↻</button>
                                 <button class="action-btn edit-btn" onclick="editTask(${task.id}, '24h')" title="Edit">✎</button>
                                 <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, '24h')" title="Delete">×</button>
@@ -436,7 +447,6 @@ function deleteTask(id, type) {
                     item.id = `task-${task.id}`;
                     
                     const isSelectedClass = (task.id === selectedId) ? 'selected-item' : '';
-                    
                     item.className = `item permanent ${isSelectedClass}`;
                     
                     item.innerHTML = `
@@ -471,6 +481,7 @@ function deleteTask(id, type) {
                                 <span class="time-left" style="color: var(--dim)">Expired ${dateString}</span>
                             </div>
                             <div class="actions">
+                                <button class="action-btn restore-btn" onclick="restoreTask(${task.id})" title="Re-remember (Restore to 24h)">↺</button>
                                 <button class="action-btn edit-btn" onclick="editTask(${task.id}, 'forgotten')" title="Edit">✎</button>
                                 <button class="action-btn delete-btn" onclick="deleteTask(${task.id}, 'forgotten')" title="Delete permanently">×</button>
                             </div>
@@ -494,3 +505,5 @@ function deleteTask(id, type) {
     </script>
 </body>
 </html>
+
+                    
